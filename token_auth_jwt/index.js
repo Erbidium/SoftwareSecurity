@@ -1,103 +1,42 @@
-const uuid = require('uuid');
 const express = require('express');
-const onFinished = require('on-finished');
 const bodyParser = require('body-parser');
 const path = require('path');
 const port = 3000;
-const fs = require('fs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const SESSION_KEY = 'Authorization';
+const JWT_SECRET = 'secret';
+const JWT_EXPIRES = '10s';
 
-class Session {
-    #sessions = {}
-
-    constructor() {
-        try {
-            this.#sessions = fs.readFileSync('./sessions.json', 'utf8');
-            this.#sessions = JSON.parse(this.#sessions.trim());
-
-            console.log(this.#sessions);
-        } catch(e) {
-            this.#sessions = {};
-        }
-    }
-
-    #storeSessions() {
-        fs.writeFileSync('./sessions.json', JSON.stringify(this.#sessions), 'utf-8');
-    }
-
-    set(key, value) {
-        if (!value) {
-            value = {};
-        }
-        this.#sessions[key] = value;
-        this.#storeSessions();
-    }
-
-    get(key) {
-        return this.#sessions[key];
-    }
-
-    init(res) {
-        const sessionId = uuid.v4();
-        this.set(sessionId);
-
-        return sessionId;
-    }
-
-    destroy(req, res) {
-        const sessionId = req.sessionId;
-        delete this.#sessions[sessionId];
-        this.#storeSessions();
-    }
-}
-
-const sessions = new Session();
+const AUTHORIZATION_HEADER = 'Authorization';
 
 app.use((req, res, next) => {
-    let currentSession = {};
-    let sessionId = req.get(SESSION_KEY);
+    let currentUser = {};
+    let token = req.get(AUTHORIZATION_HEADER);
 
-    if (sessionId) {
-        currentSession = sessions.get(sessionId);
-        if (!currentSession) {
-            currentSession = {};
-            sessionId = sessions.init(res);
-        }
-    } else {
-        sessionId = sessions.init(res);
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            currentUser = { username: decoded.username, login: decoded.login };
+        } catch (err) { }
     }
 
-    req.session = currentSession;
-    req.sessionId = sessionId;
-
-    onFinished(req, () => {
-        const currentSession = req.session;
-        const sessionId = req.sessionId;
-        sessions.set(sessionId, currentSession);
-    });
+    req.user = currentUser;
 
     next();
 });
 
 app.get('/', (req, res) => {
-    if (req.session.username) {
+    if (req.user.username) {
         return res.json({
-            username: req.session.username,
-            logout: 'http://localhost:3000/logout'
+            username: req.user.username
         })
     }
     res.sendFile(path.join(__dirname+'/index.html'));
 })
-
-app.get('/logout', (req, res) => {
-    sessions.destroy(req, res);
-    res.redirect('/');
-});
 
 const users = [
     {
@@ -123,10 +62,16 @@ app.post('/api/login', (req, res) => {
     });
 
     if (user) {
-        req.session.username = user.username;
-        req.session.login = user.login;
+        const token = jwt.sign(
+            {
+                username: user.username,
+                login: user.login,
+            },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES }
+        );
 
-        res.json({ token: req.sessionId });
+        res.json({ token });
     }
 
     res.status(401).send();
