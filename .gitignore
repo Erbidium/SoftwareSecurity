@@ -109,3 +109,5 @@ dist
 forms_auth/sessions.json
 
 token_auth/sessions.json
+
+token_auth_jwt/sessions.json
