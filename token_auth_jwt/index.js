@@ -14,17 +14,17 @@ const JWT_EXPIRES = '10s';
 const AUTHORIZATION_HEADER = 'Authorization';
 
 app.use((req, res, next) => {
-    let currentUser = {};
+    let user = {};
     let token = req.get(AUTHORIZATION_HEADER);
 
     if (token) {
         try {
             const decoded = jwt.verify(token, JWT_SECRET);
-            currentUser = { username: decoded.username, login: decoded.login };
+            user = { username: decoded.username, login: decoded.login };
         } catch (err) { }
     }
 
-    req.user = currentUser;
+    req.user = user;
 
     next();
 });
