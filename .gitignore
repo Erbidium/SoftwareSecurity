@@ -107,3 +107,5 @@ dist
 .idea/
 
 forms_auth/sessions.json
+
+token_auth/sessions.json
