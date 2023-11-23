@@ -27,7 +27,6 @@ const jwksClientInstance = jwksClient({
 
 const indexPath = path.join(__dirname + "/index.html");
 
-
 app.get("/", (req, res) => {
     const token = req?.headers["authorization"];
     if (token) {
@@ -48,7 +47,7 @@ app.get("/", (req, res) => {
                     return res.status(401).sendFile(indexPath);
                 }
                 if(timeExpiresToken - currentTime <= timeToken){
-                    console.log("refresh token");
+                    console.log("lifetime was expired");
                 } else {
                     return res.status(200).json({login: decoded.sub});
                 }
