@@ -6,8 +6,6 @@ const axios = require("axios");
 
 require("dotenv").config();
 
-const port = 3000;
-
 const app = express();
 app.use(express.json());
 
@@ -30,23 +28,20 @@ app.get("/", (req, res) => {
     if (token) {
         const decodedToken = jwt.decode(token, {complete: true});
 
-        const decodedHeader = decodedToken?.header;
-
-        const currentTime = Math.floor(Date.now() / 1000);
-        const timeExpiresToken = decodedToken.payload.exp;
-
-        jwksClientInstance.getSigningKey(decodedHeader.kid, (error, key) => {
-            if(error) {
+        jwksClientInstance.getSigningKey(decodedToken?.header.kid, (error, key) => {
+            if (error) {
                 console.log(error);
             }
+
             const signingKey = key.publicKey || key.rsaPublicKey;
             jwt.verify(token, signingKey, (error, decoded) => {
                 if (error) {
                     return res.status(401).sendFile(indexPath);
                 }
-                console.log(timeExpiresToken)
-                console.log(currentTime)
-                if(timeExpiresToken < currentTime){
+
+                const currentTime = Math.floor(Date.now() / 1000);
+
+                if(decodedToken.payload.exp < currentTime){
                     console.log("lifetime was expired");
                 } else {
                     return res.status(200).json({login: decoded.sub});
@@ -114,15 +109,15 @@ app.post('/api/register', (req, res) => {
                     },
                 })
                 .then((response) => {
-                    res.json(requestBody.email + " registered success");
+                    res.json(requestBody.email + " registered was success");
                 })
                 .catch((error) => {
                     console.log(error);
-                    res.status(401).json("Fail registred: " + error?.message);
+                    res.status(401).json("Registration failed: " + error?.message);
                 });
         });
 });
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+app.listen(3000, () => {
+    console.log(`Example app listening on port ${3000}`);
 });
