@@ -8,13 +8,11 @@ require("dotenv").config();
 
 const port = 3000;
 
-const timeToken = 86000
-
 const app = express();
 app.use(express.json());
 
-const authTokenUrl = "https://dev-03sf3h7wps3568b4.us.auth0.com/oauth/token";
-const authUrl = "https://dev-03sf3h7wps3568b4.us.auth0.com";
+const authDomain = "https://dev-03sf3h7wps3568b4.us.auth0.com";
+const tokenUrl = "https://dev-03sf3h7wps3568b4.us.auth0.com/oauth/token";
 const jwksUri = "https://dev-03sf3h7wps3568b4.us.auth0.com/.well-known/jwks.json";
 
 const clientId = "HRamN7Ut1X7luRsIwvSBZ24Wk5Ufzkh0"
@@ -46,7 +44,9 @@ app.get("/", (req, res) => {
                 if (error) {
                     return res.status(401).sendFile(indexPath);
                 }
-                if(timeExpiresToken - currentTime <= timeToken){
+                console.log(timeExpiresToken)
+                console.log(currentTime)
+                if(timeExpiresToken < currentTime){
                     console.log("lifetime was expired");
                 } else {
                     return res.status(200).json({login: decoded.sub});
@@ -69,7 +69,7 @@ app.post('/api/login', (req, res) => {
     const { login, password } = req.body;
 
     const requestBody = {
-        audience: `${authUrl}/api/v2/`,
+        audience: `${authDomain}/api/v2/`,
         grant_type: "password",
         client_id: clientId,
         client_secret: clientSecret,
@@ -78,7 +78,7 @@ app.post('/api/login', (req, res) => {
     };
 
     axios
-        .post(authTokenUrl, requestBody)
+        .post(tokenUrl, requestBody)
         .then((response) => {
             const token = response.data.access_token;
             res.json({ token });
@@ -92,10 +92,10 @@ app.post('/api/login', (req, res) => {
 
 app.post('/api/register', (req, res) => {
     axios
-        .post(`${authUrl}/oauth/token`, {
+        .post(`${authDomain}/oauth/token`, {
             client_id: clientId,
             client_secret: clientSecret,
-            audience: `${authUrl}/api/v2/`,
+            audience: `${authDomain}/api/v2/`,
             grant_type: "client_credentials",
         })
         .then((response) => {
@@ -108,7 +108,7 @@ app.post('/api/register', (req, res) => {
             };
 
             axios
-                .post(`${authUrl}/api/v2/users`, requestBody, {
+                .post(`${authDomain}/api/v2/users`, requestBody, {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
                     },
