@@ -54,11 +54,7 @@ app.get("/", (req, res) => {
 });
 
 
-app.get("/logout", (req, res) => {
-    res.redirect("/");
-    console.log("1");
-});
-
+app.get("/logout", (req, res) => res.redirect("/"));
 
 app.post('/api/login', async (req, res) => {
     const {login, password} = req.body;
@@ -82,37 +78,37 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.post('/api/register', (req, res) => {
-    axios
+app.post('/api/register', async (req, res) => {
+    const tokenResponse = await axios
         .post(`${authDomain}/oauth/token`, {
             client_id: clientId,
             client_secret: clientSecret,
             audience: `${authDomain}/api/v2/`,
             grant_type: "client_credentials",
-        })
-        .then((response) => {
-            const accessToken = response.data.access_token;
-
-            const requestBody = {
-                email: req.body.login,
-                password: req.body.password,
-                connection: "Username-Password-Authentication",
-            };
-
-            axios
-                .post(`${authDomain}/api/v2/users`, requestBody, {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                })
-                .then((response) => {
-                    res.json(requestBody.email + " registered was success");
-                })
-                .catch((error) => {
-                    console.log(error);
-                    res.status(401).json("Registration failed: " + error?.message);
-                });
         });
+
+    const accessToken = tokenResponse.data.access_token;
+
+    const requestBody = {
+        email: req.body.login,
+        password: req.body.password,
+        connection: "Username-Password-Authentication",
+    };
+
+    try
+    {
+        await axios.post(`${authDomain}/api/v2/users`, requestBody, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(401).json("Registration failed: " + error?.message);
+    }
+
+    res.json(requestBody.email + " registered was success");
 });
 
 app.listen(3000, () => {
