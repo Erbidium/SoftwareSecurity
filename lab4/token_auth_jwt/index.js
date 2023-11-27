@@ -60,8 +60,8 @@ app.get("/logout", (req, res) => {
 });
 
 
-app.post('/api/login', (req, res) => {
-    const { login, password } = req.body;
+app.post('/api/login', async (req, res) => {
+    const {login, password} = req.body;
 
     const requestBody = {
         audience: `${authDomain}/api/v2/`,
@@ -72,17 +72,14 @@ app.post('/api/login', (req, res) => {
         password: password,
     };
 
-    axios
-        .post(tokenUrl, requestBody)
-        .then((response) => {
-            const token = response.data.access_token;
-            res.json({ token });
-        })
-        .catch((error) => {
-            console.log(error);
-            res.status(401).json("Fail login");
-        });
-
+    try {
+        const response = await axios.post(tokenUrl, requestBody);
+        const token = response.data.access_token;
+        res.json({token});
+    } catch (error) {
+        console.log(error);
+        res.status(401).json("Failed login");
+    }
 });
 
 app.post('/api/register', (req, res) => {
